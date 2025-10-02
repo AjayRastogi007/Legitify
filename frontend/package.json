@@ -1,0 +1,32 @@
+{
+  "name": "legitify",
+  "version": "1.0.0",
+  "description": "A full-stack document verification platform built with React and Spring Boot. Uses AI-powered OCR to scan legal and insurance documents for authenticity, hidden clauses, and key condition extraction, providing users with a clear, concise, and trustworthy analysis.",
+  "scripts": {
+    "test": "jest",
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AjayRastogi007/Legetify.git"
+  },
+  "keywords": [
+    "reactjs",
+    "springboot",
+    "legal",
+    "document",
+    "verification"
+  ],
+  "author": "Ajay Rastogi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AjayRastogi007/Legetify/issues"
+  },
+  "homepage": "https://github.com/AjayRastogi007/Legetify#readme",
+  "dependencies": {
+    "parcel": "^2.16.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
