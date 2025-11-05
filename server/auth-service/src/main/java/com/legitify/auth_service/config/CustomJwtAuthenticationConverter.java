@@ -17,7 +17,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         String scope = jwt.getClaimAsString("scope");
-        if ("REFRESH_TOKEN".equals(scope)) {
+        if ("REFRESH_TOKEN".equalsIgnoreCase(scope)) {
             throw new BadCredentialsException("Cannot use refresh token to access secured endpoints.");
         }
 

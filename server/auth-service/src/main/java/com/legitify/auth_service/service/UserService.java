@@ -1,11 +1,14 @@
 package com.legitify.auth_service.service;
 
-import com.legitify.auth_service.dto.TokenRefreshRequestDto;
 import com.legitify.auth_service.dto.UserRequestDto;
 import com.legitify.auth_service.dto.UserResponseDto;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 public interface UserService {
-    UserResponseDto reistration(UserRequestDto userRequestDto);
+    void reistration(UserRequestDto userRequestDto);
+
     UserResponseDto signIn(UserRequestDto userRequestDto);
-    void signOut(TokenRefreshRequestDto tokenRefreshRequestDto);
+
+    void signOut(HttpServletRequest request);
 }

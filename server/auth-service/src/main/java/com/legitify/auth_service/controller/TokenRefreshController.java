@@ -1,13 +1,12 @@
 package com.legitify.auth_service.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.legitify.auth_service.dto.AuthResponseDto;
-import com.legitify.auth_service.dto.TokenRefreshRequestDto;
+import com.legitify.auth_service.dto.TokenResponse;
 import com.legitify.auth_service.entity.User;
 import com.legitify.auth_service.exception.InvalidCredentialsException;
 import com.legitify.auth_service.repository.UserRepository;
@@ -23,17 +22,24 @@ public class TokenRefreshController {
     private final UserRepository userRepository;
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponseDto> refresh(@RequestBody TokenRefreshRequestDto request) {
-        String refreshToken = request.getRefreshToken();
+    public ResponseEntity<TokenResponse> refresh(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new InvalidCredentialsException("Refresh token missing");
+        }
 
         User user = userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired JWT token"));
+                .orElseThrow(() -> new InvalidCredentialsException("User not found"));
+
+        if (!jwtService.isValidRefreshToken(refreshToken, user)) {
+            throw new InvalidCredentialsException("Invalid or expired refresh token");
+        }
 
         String newAccessToken = jwtService.createAccessToken(user, "ROLE_USER");
-        String newRefreshToken = jwtService.createRefreshToken(user, "ROLE_USER");
-        user.setRefreshToken(newRefreshToken);
-        userRepository.save(user);
 
-        return ResponseEntity.ok(new AuthResponseDto(newAccessToken, newRefreshToken));
+        return ResponseEntity
+                .ok()
+                .body(new TokenResponse(newAccessToken));
     }
 }

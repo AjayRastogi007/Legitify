@@ -13,7 +13,7 @@ public interface UserMapper {
 
     UserMapper MAPPER = Mappers.getMapper(UserMapper.class);
 
-    @Mapping(target = "authResponseDto", ignore = true)
+    @Mapping(target = "accessToken", ignore = true)
     UserResponseDto maptoUserResponseDto(User user);
 
     @Mapping(target = "id", ignore = true)
