@@ -1,24 +1,14 @@
 import { useEffect } from "react";
 
-export default function useAutoScrollLock() {
+const useAutoScrollLock = () => {
   useEffect(() => {
-    const checkScroll = () => {
-      const contentHeight = document.body.scrollHeight;
-      const viewportHeight = window.innerHeight;
-
-      if (contentHeight <= viewportHeight) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "auto";
-      }
-    };
-
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-
+    document.documentElement.style.overflowY = "hidden";
+    document.body.style.overflowY = "hidden";
     return () => {
-      window.removeEventListener("resize", checkScroll);
-      document.body.style.overflow = "auto";
+      document.documentElement.style.overflowY = "auto";
+      document.body.style.overflowY = "auto";
     };
   }, []);
-}
+};
+
+export default useAutoScrollLock;

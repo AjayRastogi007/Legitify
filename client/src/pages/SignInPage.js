@@ -74,8 +74,13 @@ const SignInPage = () => {
 
     return (
         <div
-            className="d-flex flex-column align-items-center justify-content-center px-3"
-            style={{ minHeight: "100vh" }}
+            className="d-flex flex-column align-items-center justify-content-center px-3 flex-grow-1"
+            style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+            }}
         >
             <div
                 className="form-card p-4 p-md-5 shadow-sm w-100"

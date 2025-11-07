@@ -19,6 +19,12 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./styles.css";
 
+import { setScrollbarWidth } from "./utility/setScrollbarWidth";
+import { fixViewportWidth } from "./utility/fixViewportWidth";
+
+setScrollbarWidth();
+fixViewportWidth();
+
 const router = createBrowserRouter(
     createRoutesFromElements(
         <Route element={<AuthProvider><App /></AuthProvider>} errorElement={<ErrorPage />}>
