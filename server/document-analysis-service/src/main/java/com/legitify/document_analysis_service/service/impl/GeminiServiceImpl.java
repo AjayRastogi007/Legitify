@@ -7,6 +7,7 @@ import com.legitify.document_analysis_service.utils.DocumentAnalyzer;
 import com.legitify.document_analysis_service.utils.ExtractionResult;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.service.AiServices;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,10 +21,12 @@ public class GeminiServiceImpl implements GeminiService {
     private final DocumentAnalyzer analyzer;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public GeminiServiceImpl() {
+    public GeminiServiceImpl(
+            @Value("${GEMINI_API_KEY}") String geminiApiKey
+    ) {
         GoogleAiGeminiChatModel model =
                 GoogleAiGeminiChatModel.builder()
-                        .apiKey(System.getenv("GEMINI_API_KEY"))
+                        .apiKey(geminiApiKey)
                         .modelName("gemini-2.5-flash")
                         .temperature(0.2)
                         .build();
