@@ -3,6 +3,7 @@ package com.legitify.auth_service.service.impl;
 import java.text.ParseException;
 import java.time.Instant;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -20,10 +21,13 @@ public class JwtServiceImpl implements JwtService {
 
     private final JwtEncoder jwtEncoder;
 
+    @Value("${JWT_ISSUER}")
+    private String jwtIssuer;
+
     @Override
     public String createAccessToken(User user, String authority) {
         var claims = JwtClaimsSet.builder()
-                .issuer("http://localhost:8081")
+                .issuer(jwtIssuer)
                 .issuedAt(Instant.now())
                 .expiresAt((Instant.now().plusSeconds(15 * 60)))
                 .subject(user.getEmail())
@@ -38,7 +42,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String createRefreshToken(User user, String authority) {
         var claims = JwtClaimsSet.builder()
-                .issuer("http://localhost:8081")
+                .issuer(jwtIssuer)
                 .issuedAt(Instant.now())
                 .expiresAt((Instant.now().plusSeconds(7 * 24 * 60 * 60)))
                 .subject(user.getEmail())
