@@ -17,12 +17,11 @@ import com.nimbusds.jwt.SignedJWT;
 public class JwtServiceImpl implements JwtService {
 
     private final JwtEncoder jwtEncoder;
+    private final String jwtIssuer;
 
-    @Value("${JWT_ISSUER}")
-    private String jwtIssuer;
-
-    public JwtServiceImpl(JwtEncoder jwtEncoder) {
+    public JwtServiceImpl(JwtEncoder jwtEncoder, @Value("${JWT_ISSUER}") String jwtIssuer) {
         this.jwtEncoder = jwtEncoder;
+        this.jwtIssuer = jwtIssuer;
     }
 
     @Override
