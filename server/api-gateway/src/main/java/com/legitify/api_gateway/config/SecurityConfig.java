@@ -15,12 +15,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(ex -> ex
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
-                        .pathMatchers(
-                                "/legitify/auth/register",
-                                "/legitify/auth/sign-in",
-                                "/legitify/auth/refresh",
-                                "/legitify/auth/.well-known/jwks.json"
-                        ).permitAll()
+                        .pathMatchers("/legitify/auth/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

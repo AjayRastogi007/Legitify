@@ -37,12 +37,7 @@ public class JwtSecurityConfiguration {
         http
                 .authorizeHttpRequests(
                         auth -> auth
-                                .requestMatchers(
-                                        "/legitify/auth/register",
-                                        "/legitify/auth/sign-in",
-                                        "/legitify/auth/refresh",
-                                        "/legitify/auth/.well-known/jwks.json"
-                                )
+                                .requestMatchers("/legitify/auth/**")
                                 .permitAll()
                                 .anyRequest()
                                 .authenticated())
