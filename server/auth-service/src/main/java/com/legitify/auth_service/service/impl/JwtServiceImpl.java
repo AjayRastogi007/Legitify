@@ -13,16 +13,17 @@ import com.legitify.auth_service.entity.User;
 import com.legitify.auth_service.service.JwtService;
 import com.nimbusds.jwt.SignedJWT;
 
-import lombok.AllArgsConstructor;
-
 @Service
-@AllArgsConstructor
 public class JwtServiceImpl implements JwtService {
 
     private final JwtEncoder jwtEncoder;
 
     @Value("${JWT_ISSUER}")
     private String jwtIssuer;
+
+    public JwtServiceImpl(JwtEncoder jwtEncoder) {
+        this.jwtEncoder = jwtEncoder;
+    }
 
     @Override
     public String createAccessToken(User user, String authority) {
