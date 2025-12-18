@@ -2,6 +2,13 @@ import { useEffect, useRef } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { refreshAccessToken } from "../service/authService";
+import { useAlert } from "../context/AlertContext";
+
+const AUTH_EXCLUDED_ENDPOINTS = [
+    "/auth/sign-in",
+    "/auth/sign-out",
+    "/auth/refresh",
+];
 
 let refreshPromise = null;
 
@@ -15,8 +22,16 @@ const getFreshToken = async () => {
 };
 
 const useAxios = () => {
+    const { showAlert } = useAlert();
+
     const { auth, setAuth } = useAuth();
     const accessTokenRef = useRef(auth.accessToken);
+    const isLoggingOutRef = useRef(auth.isLoggingOut);
+
+    useEffect(() => {
+        isLoggingOutRef.current = auth.isLoggingOut;
+    }, [auth.isLoggingOut]);
+
 
     useEffect(() => {
         accessTokenRef.current = auth.accessToken;
@@ -37,8 +52,7 @@ const useAxios = () => {
                     config.headers.Authorization = `Bearer ${token}`;
                 }
                 return config;
-            },
-            (error) => Promise.reject(error)
+            }
         );
 
         const resId = api.interceptors.response.use(
@@ -50,11 +64,18 @@ const useAxios = () => {
                     return Promise.reject(error);
                 }
 
-                const isRefreshCall =
-                    originalRequest.url?.includes("/auth/refresh") ||
-                    originalRequest._isRefresh;
+                const isAuthExcluded = AUTH_EXCLUDED_ENDPOINTS.some((url) =>
+                    originalRequest.url?.includes(url)
+                );
 
-                if (error.response.status === 401 && !originalRequest._retry && !isRefreshCall) {
+
+                if (
+                    error.response.status === 401 &&
+                    !originalRequest._retry &&
+                    !isAuthExcluded &&
+                    !isLoggingOutRef.current
+                ) {
+
                     originalRequest._retry = true;
 
                     try {
@@ -62,22 +83,28 @@ const useAxios = () => {
                         const newAccessToken = res?.accessToken;
 
                         if (!newAccessToken) {
-                            setAuth({ user: null, accessToken: null });
-                            delete api.defaults.headers.common.Authorization;
-                            return Promise.reject(error);
+                            throw new Error("No access token received");
                         }
 
                         setAuth((prev) => ({ ...prev, accessToken: newAccessToken }));
+
                         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
 
+                        originalRequest.headers = originalRequest.headers;
 
-                        originalRequest.headers = originalRequest.headers || {};
                         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
                         return api(originalRequest);
-                    } catch (refreshError) {
+                    } catch {
+                        showAlert({
+                            title: "Session expired",
+                            message: "Please sign in again.",
+                            type: "warning",
+                        });
+
                         setAuth({ user: null, accessToken: null });
                         delete api.defaults.headers.common.Authorization;
-                        return Promise.reject(refreshError);
+                        return Promise.reject(error);
                     }
                 }
 
@@ -86,10 +113,11 @@ const useAxios = () => {
         );
 
         return () => {
-            api.interceptors.request.eject(requestIntercept);
-            api.interceptors.response.eject(responseIntercept);
+            api.interceptors.request.eject(reqId);
+            api.interceptors.response.eject(resId);
         };
-    }, [auth, setAuth]);
+
+    }, []);
 
     return api;
 };

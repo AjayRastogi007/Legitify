@@ -9,7 +9,6 @@ import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -41,7 +40,9 @@ public class JwtSecurityConfiguration {
                                 .requestMatchers(
                                         "/legitify/auth/register",
                                         "/legitify/auth/sign-in",
-                                        "/legitify/auth/refresh")
+                                        "/legitify/auth/refresh",
+                                        "/legitify/auth/.well-known/jwks.json"
+                                )
                                 .permitAll()
                                 .anyRequest()
                                 .authenticated())
@@ -51,9 +52,7 @@ public class JwtSecurityConfiguration {
 
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                .csrf(csrf -> csrf.disable())
-
-                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
 
                 .oauth2ResourceServer(
                         oauth2 -> oauth2

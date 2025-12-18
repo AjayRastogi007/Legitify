@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="api-gateway" options="-parameters" />
+      <module name="api-gateway.main" options="-parameters" />
+      <module name="api-gateway.test" options="-parameters" />
+      <module name="auth-service" options="-parameters" />
+      <module name="auth-service.main" options="-parameters" />
+      <module name="auth-service.test" options="-parameters" />
+      <module name="document-analysis-service" options="-parameters" />
+      <module name="document-analysis-service.main" options="-parameters" />
+      <module name="document-analysis-service.test" options="-parameters" />
+      <module name="service-registry" options="-parameters" />
+      <module name="service-registry.main" options="-parameters" />
+      <module name="service-registry.test" options="-parameters" />
+    </option>
+  </component>
+</project>

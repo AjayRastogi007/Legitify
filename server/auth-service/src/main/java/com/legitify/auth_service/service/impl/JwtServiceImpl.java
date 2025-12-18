@@ -23,7 +23,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String createAccessToken(User user, String authority) {
         var claims = JwtClaimsSet.builder()
-                .issuer("auth-service")
+                .issuer("http://localhost:8081")
                 .issuedAt(Instant.now())
                 .expiresAt((Instant.now().plusSeconds(15 * 60)))
                 .subject(user.getEmail())
@@ -38,7 +38,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String createRefreshToken(User user, String authority) {
         var claims = JwtClaimsSet.builder()
-                .issuer("auth-service")
+                .issuer("http://localhost:8081")
                 .issuedAt(Instant.now())
                 .expiresAt((Instant.now().plusSeconds(7 * 24 * 60 * 60)))
                 .subject(user.getEmail())

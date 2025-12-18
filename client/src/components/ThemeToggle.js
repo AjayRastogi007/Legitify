@@ -1,59 +1,58 @@
-import { useEffect, useState, useRef } from "react";
-import { Tooltip } from "bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import { useState, useEffect } from "react";
+import { Sun, Moon } from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 const ThemeToggle = () => {
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
-  const buttonRef = useRef(null);
-  const tooltipInstance = useRef(null);
-
-  useEffect(() => {
-    if (buttonRef.current) {
-      tooltipInstance.current = new Tooltip(buttonRef.current, {
-        title: theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode",
-        placement: "bottom",
-        trigger: "hover",
-      });
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") || "light";
     }
-
-    return () => {
-      if (tooltipInstance.current) {
-        tooltipInstance.current.dispose();
-        tooltipInstance.current = null;
-      }
-    };
-  }, []);
+    return "light";
+  });
 
   useEffect(() => {
-    document.body.setAttribute("data-bs-theme", theme);
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
     localStorage.setItem("theme", theme);
-
-    if (tooltipInstance.current) {
-      tooltipInstance.current.setContent({
-        ".tooltip-inner":
-          theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode",
-      });
-    }
   }, [theme]);
 
   const toggleTheme = () => {
-    tooltipInstance.current?.hide();
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="theme-toggle-btn"
-      onClick={toggleTheme}
-    >
-      <i
-        className={`bi ${theme === "light" ? "bi-moon-stars-fill" : "bi-sun-fill"}`}
-        style={{ fontSize: "1.25rem", lineHeight: 1 }}
-      ></i>
-    </button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTheme}
+            className="w-10 h-10 rounded-lg border border-border bg-card hover:bg-accent transition-all duration-200"
+          >
+            {theme === "light" ? (
+              <Moon className="w-5 h-5 text-primary" />
+            ) : (
+              <Sun className="w-5 h-5 text-primary" />
+            )}
+          </Button>
+
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --border: 226 232 240;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+    --primary: 37 99 235;
+    --primary-foreground: 255 255 255;
+    --accent: 241 245 249;
+    --destructive: 220 38 38;
+  }
+
+  .dark {
+    --background: 2 6 23;
+    --foreground: 226 232 240;
+    --card: 15 23 42;
+    --border: 30 41 59;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+    --accent: 30 41 59;
+    --destructive: 248 113 113;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px,
+        transparent 1px);
+    background-size: 24px 24px;
+    color: rgb(var(--foreground));
+    font-family: "DM Sans", sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-background {
+    background-color: rgb(var(--background));
+  }
+
+  .bg-card {
+    background-color: rgb(var(--card));
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .bg-accent {
+    background-color: rgb(var(--accent));
+  }
+
+  .text-foreground {
+    color: rgb(var(--foreground));
+  }
+
+  .text-muted-foreground {
+    color: rgb(var(--muted-foreground));
+  }
+
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+
+  .text-primary-foreground {
+    color: rgb(var(--primary-foreground));
+  }
+
+  .text-destructive {
+    color: rgb(var(--destructive));
+  }
+
+  .hover-text-accent:hover {
+    color: rgb(var(--primary));
+    text-shadow: 0 0 6px rgba(37, 99, 235, 0.35);
+  }
+
+  .dark .hover-text-accent:hover {
+    color: rgb(96 165 250);
+    text-shadow: 0 0 8px rgba(96, 165, 250, 0.35);
+  }
+
+  .border-border {
+    border-color: rgb(var(--border));
+  }
+
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+
+  .bg-destructive {
+    background-color: rgb(var(--destructive));
+  }
+
+  .gradient-primary {
+    background-image: linear-gradient(to right,
+        rgb(var(--primary)),
+        rgb(59 130 246));
+    color: white;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.35s ease-out both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-error {
+    animation: errorFade 0.25s ease-out both;
+  }
+
+  @keyframes errorFade {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

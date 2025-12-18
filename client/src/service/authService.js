@@ -16,9 +16,7 @@ export const refreshAccessToken = async () => {
 };
 
 export const getCurrentUser = async () => {
-    console.log("me is called");
     const response = await api.get("/auth/me");
-    console.log("me was called");
     return response.data;
 }
 
