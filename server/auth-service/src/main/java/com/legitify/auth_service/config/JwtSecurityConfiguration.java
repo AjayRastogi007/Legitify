@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.UUID;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,30 +34,42 @@ public class JwtSecurityConfiguration {
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    SecurityFilterChain authPublicChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(
-                        auth -> auth
-                                .requestMatchers(
-                                        "/register",
-                                        "/sign-in",
-                                        "/refresh",
-                                        "/.well-known/jwks.json")
-                                .permitAll()
-                                .anyRequest()
-                                .authenticated())
-
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .httpBasic(AbstractHttpConfigurer::disable)
-
+                .securityMatcher(
+                        "/register",
+                        "/sign-in",
+                        "/refresh",
+                        "/.well-known/jwks.json"
+                )
                 .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s ->
+                        s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
-                .oauth2ResourceServer(
-                        oauth2 -> oauth2
-                                .jwt(jwt -> jwt.jwtAuthenticationConverter(new CustomJwtAuthenticationConverter()))
-                                .authenticationEntryPoint(jwtAuthEntryPoint));
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain authProtectedChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s ->
+                        s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth ->
+                        auth.anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwt ->
+                                jwt.jwtAuthenticationConverter(
+                                        new CustomJwtAuthenticationConverter()
+                                )
+                        )
+                );
 
         return http.build();
     }
@@ -91,7 +104,7 @@ public class JwtSecurityConfiguration {
         return NimbusJwtDecoder
                 .withPublicKey(rsaKey.toRSAPublicKey())
                 .build();
-    }
+    }ss
 
     @Bean
     public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
