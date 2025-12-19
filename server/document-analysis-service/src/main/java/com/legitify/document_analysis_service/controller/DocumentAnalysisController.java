@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 @RestController
 @RequestMapping("/legitify/service")
@@ -25,6 +26,7 @@ public class DocumentAnalysisController {
 
     private final DocumentAnalysisService documentService;
     private final GeminiService geminiService;
+    private static final Semaphore ANALYSIS_SEMAPHORE = new Semaphore(1);
 
     public DocumentAnalysisController(DocumentAnalysisService documentService, GeminiService geminiService) {
         this.documentService = documentService;
@@ -33,14 +35,24 @@ public class DocumentAnalysisController {
 
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, String>> analyzeAndGenerate(@RequestParam("file") MultipartFile file) {
-        ExtractionResult extractionResult = documentService.getTextFromFile(file);
-        String jsonResponse = geminiService.analyzeDocument(extractionResult);
-        String pdfPath = documentService.generatePdfFromString(jsonResponse);
+        if (!ANALYSIS_SEMAPHORE.tryAcquire()) {
+            return ResponseEntity.status(429).body(
+                    Map.of("error", "Document analysis already in progress")
+            );
+        }
 
-        String fileName = new File(pdfPath).getName();
-        Map<String, String> response = new HashMap<>();
-        response.put("pdfUrl", "/service/pdf/" + fileName);
-        return ResponseEntity.ok(response);
+        try {
+            ExtractionResult extractionResult = documentService.getTextFromFile(file);
+            String jsonResponse = geminiService.analyzeDocument(extractionResult);
+            String pdfPath = documentService.generatePdfFromString(jsonResponse);
+
+            String fileName = new File(pdfPath).getName();
+            Map<String, String> response = new HashMap<>();
+            response.put("pdfUrl", "/service/pdf/" + fileName);
+            return ResponseEntity.ok(response);
+        } finally {
+            ANALYSIS_SEMAPHORE.release();
+        }
     }
 
     @GetMapping("/pdf/{fileName}")
