@@ -163,8 +163,8 @@ const PdfUploader = () => {
   };
 
   const pollJobStatus = async (jobId) => {
-    const interval = 2000;
-    const timeout = 60000;
+    let interval = 3000;
+    const timeout = 90000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
@@ -179,10 +179,12 @@ const PdfUploader = () => {
       }
 
       await new Promise((r) => setTimeout(r, interval));
+      interval = Math.min(interval + 2000, 10000);
     }
 
     throw new Error("Analysis timed out");
   };
+
 
 
   return (
