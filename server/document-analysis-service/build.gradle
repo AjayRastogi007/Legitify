@@ -46,8 +46,9 @@ dependencies {
 	implementation 'dev.langchain4j:langchain4j-google-ai-gemini:1.9.1'
 	implementation 'dev.langchain4j:langchain4j:1.9.1'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.postgresql:postgresql'
-	implementation 'org.projectlombok:lombok'
+	runtimeOnly 'org.postgresql:postgresql'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
