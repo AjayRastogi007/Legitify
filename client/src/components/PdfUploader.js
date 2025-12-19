@@ -82,17 +82,15 @@ const PdfUploader = () => {
       const formData = new FormData();
       formData.append("file", files[0]);
 
-      const response = await api.post(
-        "/service/analyze",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await api.post("/service/analyze", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      setResultPdfUrl(response.data.pdfUrl);
+      const jobId = res.data.jobId;
+
+      const pdfUrl = await pollJobStatus(jobId);
+
+      setResultPdfUrl(pdfUrl);
 
       showAlert({
         title: "Analysis complete",
@@ -103,16 +101,14 @@ const PdfUploader = () => {
     } catch (error) {
       showAlert({
         title: "Upload failed",
-        message:
-          error.response?.data?.message ||
-          "Something went wrong while analyzing the document.",
+        message: error.message || "Something went wrong",
         type: "error",
       });
-    }
-    finally {
+    } finally {
       setIsAnalyzing(false);
     }
   };
+
 
   const handleViewPdf = async () => {
     try {
@@ -165,6 +161,29 @@ const PdfUploader = () => {
     }
     return true;
   };
+
+  const pollJobStatus = async (jobId) => {
+    const interval = 2000;
+    const timeout = 60000;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const res = await api.get(`/service/jobs/${jobId}`);
+
+      if (res.data.status === "DONE") {
+        return res.data.pdfUrl;
+      }
+
+      if (res.data.status === "FAILED") {
+        throw new Error(res.data.error || "Analysis failed");
+      }
+
+      await new Promise((r) => setTimeout(r, interval));
+    }
+
+    throw new Error("Analysis timed out");
+  };
+
 
   return (
     <div className="pdf-uploader-wrapper w-full max-w-2xl mx-auto px-6 pb-6">

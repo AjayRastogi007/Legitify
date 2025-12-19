@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:9191/legitify",
+    baseURL: `${process.env.PARCEL_API_BASE_URL}/legitify`,
     withCredentials: true,
 });
 
