@@ -38,19 +38,18 @@ public class JwtSecurityConfiguration {
     SecurityFilterChain authPublicChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher(
-                        "/register",
-                        "/sign-in",
-                        "/refresh",
-                        "/.well-known/jwks.json"
+                        "/legitify/auth/register",
+                        "/legitify/auth/sign-in",
+                        "/legitify/auth/refresh",
+                        "/legitify/auth/.well-known/jwks.json"
                 )
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(s ->
-                        s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
         return http.build();
     }
+
 
     @Bean
     @Order(2)

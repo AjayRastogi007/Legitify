@@ -15,13 +15,12 @@ public class SecurityConfig {
     @Order(1)
     public SecurityWebFilterChain authChain(ServerHttpSecurity http) {
         return http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
-                        "/legitify/auth/**"
-                ))
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/legitify/auth/**"))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(ex -> ex.anyExchange().permitAll())
                 .build();
     }
+
 
     @Bean
     @Order(2)
