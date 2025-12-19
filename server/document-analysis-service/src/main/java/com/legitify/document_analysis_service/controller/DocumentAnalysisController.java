@@ -1,5 +1,6 @@
 package com.legitify.document_analysis_service.controller;
 
+import com.legitify.document_analysis_service.dto.AnalysisJobDto;
 import com.legitify.document_analysis_service.entity.AnalysisJob;
 import com.legitify.document_analysis_service.repository.AnalysisJobRepository;
 import com.legitify.document_analysis_service.utils.ExtractionResult;
@@ -74,11 +75,13 @@ public class DocumentAnalysisController {
     @GetMapping("/jobs/{jobId}")
     public ResponseEntity<?> getJob(@PathVariable String jobId) {
         return jobRepository.findById(jobId)
-                .map(job -> ResponseEntity.ok(Map.of(
-                        "status", job.getStatus(),
-                        "pdfUrl", job.getPdfUrl(),
-                        "error", job.getError()
-                )))
+                .map(job -> ResponseEntity.ok(
+                        new AnalysisJobDto(
+                                job.getStatus().name(),
+                                job.getPdfUrl(),
+                                job.getError()
+                        )
+                ))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
