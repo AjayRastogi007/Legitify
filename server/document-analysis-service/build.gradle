@@ -33,6 +33,7 @@ dependencyManagement {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'org.apache.pdfbox:pdfbox:3.0.6'
 	implementation 'com.github.librepdf:openpdf:2.2.2'
 	implementation 'org.apache.poi:poi:5.4.1'
