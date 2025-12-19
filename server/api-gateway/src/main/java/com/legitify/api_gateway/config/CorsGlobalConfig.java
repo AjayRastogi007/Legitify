@@ -16,7 +16,6 @@ public class CorsGlobalConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOriginPattern("https://*.vercel.app");
         config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
