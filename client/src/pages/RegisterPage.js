@@ -4,6 +4,7 @@ import { register } from "../service/authService";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { useAlert } from "../context/AlertContext";
 
 const initialErrorState = {
   username: "",
@@ -35,6 +36,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState(initialErrorState);
+  const { showAlert } = useAlert();
 
   const navigate = useNavigate();
 
@@ -55,6 +57,13 @@ const RegisterPage = () => {
     }
 
     try {
+
+      showAlert({
+        title: "Account created.",
+        message: "Your account was created successfully. Please sign in.",
+        type: "success",
+      });
+
       await register({ username, email, password });
       navigate("/sign-in");
     } catch (error) {
