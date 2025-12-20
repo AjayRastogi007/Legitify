@@ -65,7 +65,7 @@ const RegisterPage = () => {
       });
 
       await register({ username, email, password });
-      navigate("/sign-in");
+      setTimeout(() => navigate("/sign-in"), 300);
     } catch (error) {
       const newErrors = { ...initialErrorState };
       if (error.response?.data?.fieldErrors)

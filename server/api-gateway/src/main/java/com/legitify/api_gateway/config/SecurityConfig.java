@@ -22,7 +22,6 @@ public class SecurityConfig {
                 .build();
     }
 
-
     @Bean
     @Order(2)
     public SecurityWebFilterChain apiChain(ServerHttpSecurity http) {
