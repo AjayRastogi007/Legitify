@@ -25,7 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 
 @RestController
-@RequestMapping("legitify/auth")
+@RequestMapping("/legitify/auth")
 @AllArgsConstructor
 public class UserController {
 
