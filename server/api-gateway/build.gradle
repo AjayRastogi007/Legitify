@@ -18,7 +18,7 @@ repositories {
 	mavenCentral()
 
 	maven {
-		url = uri("https://maven.pkg.github.com/YOUR_USERNAME/legitify-common-security")
+		url = uri("https://maven.pkg.github.com/AjayRastogi007/legitify-common-security")
 
 		credentials {
 			username = System.getenv("GITHUB_USERNAME")
