@@ -1,88 +1,98 @@
 package com.legitify.auth_service.service.impl;
 
+import com.legitify.auth_service.dto.*;
+import com.legitify.auth_service.service.AuthJwtService;
+import com.legitify.auth_service.service.RefreshTokenService;
+import com.legitify.common.security.AuthUser;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.legitify.auth_service.dto.UserRequestDto;
-import com.legitify.auth_service.dto.UserResponseDto;
 import com.legitify.auth_service.entity.User;
 import com.legitify.auth_service.exception.EmailAlreadyExistsException;
 import com.legitify.auth_service.exception.InvalidCredentialsException;
-import com.legitify.auth_service.mapper.UserMapper;
 import com.legitify.auth_service.repository.UserRepository;
-import com.legitify.auth_service.service.JwtService;
-import com.legitify.auth_service.service.UserService;
+import com.legitify.auth_service.service.AuthService;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
-public class UserServiceImpl implements UserService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthJwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
-    public void reistration(UserRequestDto userRequestDto) {
-        if (userRepository.findByEmail(userRequestDto.getEmail()).isPresent()) {
-            throw new EmailAlreadyExistsException("Email already exists: " + userRequestDto.getEmail());
+    public AuthResult registration(RegisterRequestDto requestDto) {
+        if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
+            throw new EmailAlreadyExistsException("Email already exists: " + requestDto.getEmail());
         }
 
-        User user = UserMapper.MAPPER.maptoUser(userRequestDto);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setEmail(requestDto.getEmail());
+        user.setUsername(requestDto.getUsername());
+        user.setPasswordHash(passwordEncoder.encode(requestDto.getPassword()));
         userRepository.save(user);
+
+        AuthTokens tokens = issueTokens(user);
+        return new AuthResult(user, tokens);
     }
 
     @Override
-    public UserResponseDto signIn(UserRequestDto userRequestDto) {
-        User user = userRepository.findByEmail(userRequestDto.getEmail())
+    public AuthResult signIn(LoginRequestDto requestDto) {
+        User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials."));
 
         boolean isPasswordMatch = passwordEncoder.matches(
-                userRequestDto.getPassword(), user.getPassword());
+                requestDto.getPassword(), user.getPasswordHash());
 
         if (!isPasswordMatch) {
             throw new InvalidCredentialsException("Invalid credentials.");
         }
 
-        String accessToken = jwtService.createAccessToken(user, "ROLE_USER");
-        String refreshToken = jwtService.createRefreshToken(user, "ROLE_USER");
+        AuthTokens tokens = issueTokens(user);
+        return new AuthResult(user, tokens);
+    }
 
-        user.setRefreshToken(refreshToken);
-        User savedUser = userRepository.save(user);
+    @Transactional
+    public AuthTokens refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new RuntimeException("Refresh token missing");
+        }
 
-        UserResponseDto userResponseDto = UserMapper.MAPPER.maptoUserResponseDto(savedUser);
-        userResponseDto.setAccessToken(accessToken);
+        AuthUser authUser = refreshTokenService.validate(refreshToken);
+        refreshTokenService.revoke(refreshToken);
+        User user = userRepository.findById(authUser.getUserId())
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
-        return userResponseDto;
+        return issueTokens(user);
     }
 
     @Override
-    public void signOut(HttpServletRequest request) {
-        String refreshToken = extractRefreshToken(request);
-        if (refreshToken == null) {
-            throw new InvalidCredentialsException("Refresh token missing");
-        }
+    public UserResponseDto me(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        userRepository.findByRefreshToken(refreshToken)
-                .ifPresent(user -> {
-                    user.setRefreshToken(null);
-                    userRepository.save(user);
-                });
+        return new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProvider());
     }
 
-    private String extractRefreshToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("refreshToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
+    @Override
+    public void signOut(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
     }
 
+    private AuthTokens issueTokens(User user) {
+        AuthUser authUser = new AuthUser(user.getId(), user.getUsername(), user.getEmail());
+
+        String accessToken = jwtService.createAccessToken(authUser);
+        String refreshToken = refreshTokenService.createRefreshToken(authUser);
+
+        return new AuthTokens(accessToken, refreshToken);
+    }
 }

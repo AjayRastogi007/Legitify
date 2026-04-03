@@ -1,4 +1,7 @@
 package com.legitify.auth_service.dto;
 
-public class AuthTokens4 {
+public record AuthTokens(
+        String accessToken,
+        String refreshToken
+) {
 }

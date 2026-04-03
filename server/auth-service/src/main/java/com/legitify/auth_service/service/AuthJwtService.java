@@ -1,4 +1,7 @@
 package com.legitify.auth_service.service;
 
-public class AuthjwtService {
+import com.legitify.common.security.AuthUser;
+
+public interface AuthJwtService {
+    String createAccessToken(AuthUser user);
 }
