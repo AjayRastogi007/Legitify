@@ -1,6 +1,7 @@
 package com.legitify.api_gateway.config;
 
 import com.legitify.api_gateway.filter.JwtAuthFilter;
+import com.legitify.api_gateway.service.GatewayJwtService;
 import com.legitify.api_gateway.utils.JwtAuthEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -18,11 +19,23 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
-    private final JwtAuthFilter jwtAuthFilter;
-    private final JwtAuthEntryPoint entryPoint;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public JwtAuthEntryPoint jwtAuthEntryPoint() {
+        return new JwtAuthEntryPoint();
+    }
+
+    @Bean
+    public JwtAuthFilter jwtAuthFilter(GatewayJwtService jwtService) {
+        return new JwtAuthFilter(jwtService);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthFilter jwtAuthFilter,
+            JwtAuthEntryPoint entryPoint) throws Exception {
+
         http
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -32,7 +45,7 @@ public class SecurityConfiguration {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/gamao/auth/**").permitAll()
+                        .requestMatchers("/legitify/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
