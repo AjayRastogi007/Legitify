@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProvider());
+        return new UserResponseDto(user.getId(), user.getUsername(), user.getEmail());
     }
 
     @Override
