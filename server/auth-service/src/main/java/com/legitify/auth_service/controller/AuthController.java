@@ -12,13 +12,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.legitify.auth_service.dto.UserRequestDto;
-import com.legitify.auth_service.dto.UserResponseDto;
 import com.legitify.auth_service.entity.User;
 import com.legitify.auth_service.exception.InvalidCredentialsException;
 import com.legitify.auth_service.mapper.UserMapper;
 import com.legitify.auth_service.repository.UserRepository;
-import com.legitify.auth_service.service.UserService;
+import com.legitify.auth_service.service.AuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,19 +27,19 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final AuthService authService;
     private final UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<String> registration(@RequestBody UserRequestDto userRequest) {
-        userService.reistration(userRequest);
+        authService.reistration(userRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body("Registered successfully.");
     }
 
     @PostMapping("/sign-in")
     public ResponseEntity<UserResponseDto> signIn(@RequestBody UserRequestDto userRequest,
             HttpServletResponse response) {
-        UserResponseDto userResponse = userService.signIn(userRequest);
+        UserResponseDto userResponse = authService.signIn(userRequest);
 
         User user = userRepository.findById(userResponse.getId()).orElseThrow();
         String refreshToken = user.getRefreshToken();
@@ -60,7 +58,7 @@ public class UserController {
 
     @PostMapping("/sign-out")
     public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
-        userService.signOut(request);
+        authService.signOut(request);
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
