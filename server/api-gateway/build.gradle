@@ -34,7 +34,6 @@ dependencyManagement {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-reactor-netty:4.1.0-M4'
 	implementation 'com.legitify:common-security:0.0.1'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
