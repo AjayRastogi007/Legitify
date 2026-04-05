@@ -42,6 +42,18 @@ public class DocumentAnalysisServiceImpl implements DocumentAnalysisService {
         return result;
     }
 
+    @Override
+    public ExtractionResult getTextFromPath(Path path) {
+        ExtractionResult result = new ExtractionResult();
+
+        try (InputStream in = Files.newInputStream(path)) {
+            return TextExtractor.extractFromPdf(in, result, false);
+        } catch (Exception e) {
+            result.errors.add("Error reading file from path: " + e.getMessage());
+            return result;
+        }
+    }
+
     public ExtractionResult extractStructuredText(MultipartFile file, boolean forceOcr) {
         ExtractionResult out = new ExtractionResult();
         if (file == null || file.isEmpty()) {

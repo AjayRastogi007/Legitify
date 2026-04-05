@@ -17,9 +17,11 @@ import com.legitify.document_analysis_service.service.DocumentAnalysisService;
 import com.legitify.document_analysis_service.service.GeminiService;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -42,9 +44,6 @@ public class DocumentAnalysisController {
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, String>> analyzeAsync(@RequestParam("file") MultipartFile file) {
 
-        System.out.println("FILE RECEIVED: " + (file != null ? file.getOriginalFilename() : "NULL"));
-        System.out.println("FILE SIZE: " + (file != null ? file.getSize() : "0"));
-
         String jobId = UUID.randomUUID().toString();
 
         AnalysisJob job = new AnalysisJob();
@@ -52,12 +51,23 @@ public class DocumentAnalysisController {
         job.setStatus(AnalysisJob.Status.PENDING);
         jobRepository.save(job);
 
+        Path tempFile;
+
+        try {
+            String ext = Objects.requireNonNull(file.getOriginalFilename()).endsWith(".pdf") ? ".pdf" : ".tmp";
+            tempFile = Files.createTempFile("upload-", ext);
+            file.transferTo(tempFile.toFile());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+
         executor.submit(() -> {
             try {
                 job.setStatus(AnalysisJob.Status.PROCESSING);
                 jobRepository.save(job);
 
-                ExtractionResult extractionResult = documentService.getTextFromFile(file);
+                ExtractionResult extractionResult = documentService.getTextFromPath(tempFile);
 
                 System.out.println("FULL EXTRACTED TEXT:\n" + extractionResult.fullText());
 
@@ -68,6 +78,8 @@ public class DocumentAnalysisController {
                 job.setPdfUrl("/legitify/service/pdf/" + fileName);
                 job.setStatus(AnalysisJob.Status.DONE);
                 jobRepository.save(job);
+
+                Files.deleteIfExists(tempFile);
 
             } catch (Exception e) {
                 job.setStatus(AnalysisJob.Status.FAILED);
