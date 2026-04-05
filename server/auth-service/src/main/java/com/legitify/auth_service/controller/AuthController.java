@@ -41,6 +41,7 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponseDto> signIn(@RequestBody LoginRequestDto requestDto,
             HttpServletResponse response) {
+        System.out.println("SIGN-IN HIT");
         AuthResult result = authService.signIn(requestDto);
 
         response.addHeader("Set-Cookie",
