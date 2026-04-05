@@ -3,6 +3,7 @@ package com.legitify.api_gateway.filter;
 import com.legitify.api_gateway.service.GatewayJwtService;
 import com.legitify.common.security.AuthUser;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -18,7 +19,7 @@ public class JwtAuthFilter implements WebFilter {
     private final GatewayJwtService jwtService;
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, @NonNull WebFilterChain chain) {
 
         String authHeader = exchange.getRequest()
                 .getHeaders()

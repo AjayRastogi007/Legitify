@@ -2,11 +2,10 @@ package com.legitify.auth_service.service.impl;
 
 import com.legitify.auth_service.service.AuthJwtService;
 import com.legitify.common.security.AuthUser;
+import com.legitify.common.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,6 +16,7 @@ import java.util.UUID;
 public class AuthJwtServiceImpl implements AuthJwtService {
 
     private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
 
     @Value("${JWT_ISSUER}")
     private String issuer;
@@ -37,5 +37,11 @@ public class AuthJwtServiceImpl implements AuthJwtService {
         return jwtEncoder.encode(
                 JwtEncoderParameters.from(claims)
         ).getTokenValue();
+    }
+
+    @Override
+    public AuthUser parseAndValidate(String token) {
+        Jwt jwt = jwtDecoder.decode(token);
+        return JwtUtils.extractAuthUser(jwt);
     }
 }

@@ -46,11 +46,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResult signIn(LoginRequestDto requestDto) {
-        System.out.println("STEP A: Finding user");
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials."));
 
-        System.out.println("STEP B: Checking password");
         boolean isPasswordMatch = passwordEncoder.matches(
                 requestDto.getPassword(), user.getPasswordHash());
 
@@ -58,7 +56,6 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidCredentialsException("Invalid credentials.");
         }
 
-        System.out.println("STEP C: Generating tokens");
         AuthTokens tokens = issueTokens(user);
         return new AuthResult(user, tokens);
     }

@@ -1,12 +1,12 @@
 package com.legitify.auth_service.controller;
 
 import com.legitify.auth_service.dto.*;
+import com.legitify.auth_service.service.AuthJwtService;
 import com.legitify.auth_service.util.CookieUtil;
 import com.legitify.common.security.AuthUser;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.legitify.auth_service.mapper.UserMapper;
@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 public class AuthController {
 
     private final AuthService authService;
+    private final AuthJwtService jwtService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> registration(@RequestBody RegisterRequestDto requestDto, HttpServletResponse response) {
@@ -30,8 +31,6 @@ public class AuthController {
         response.addHeader("Set-Cookie",
                 CookieUtil.refreshToken(result.tokens().refreshToken()).toString()
         );
-
-        System.out.println("Registration Successful");
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 UserMapper.MAPPER.toAuthResponseDto(
@@ -44,18 +43,11 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponseDto> signIn(@RequestBody LoginRequestDto requestDto,
             HttpServletResponse response) {
-
-        System.out.println("STEP 1: Controller hit");
-
         AuthResult result = authService.signIn(requestDto);
-
-        System.out.println("STEP 2: Service returned");
 
         response.addHeader("Set-Cookie",
                 CookieUtil.refreshToken(result.tokens().refreshToken()).toString()
         );
-
-        System.out.println("STEP 3: Cookie set");
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 UserMapper.MAPPER.toAuthResponseDto(
@@ -77,12 +69,17 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserResponseDto> me(Authentication authentication) {
-        AuthUser user = (AuthUser) authentication.getPrincipal();
-        assert user != null;
-        UserResponseDto response = authService.me(user.getUserId());
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public ResponseEntity<UserResponseDto> me(HttpServletRequest request) {
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+
+        String token = authHeader.substring(7);
+        AuthUser user = jwtService.parseAndValidate(token);
+        return ResponseEntity.ok(authService.me(user.getUserId()));
     }
 
     @PostMapping("/sign-out")
