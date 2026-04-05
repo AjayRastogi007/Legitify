@@ -7,6 +7,7 @@ import com.legitify.auth_service.util.TokenHashUtil;
 import com.legitify.common.security.AuthUser;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
 
+    @Transactional
     @Override
     public String createRefreshToken(AuthUser user) {
         String rawToken = UUID.randomUUID().toString();
