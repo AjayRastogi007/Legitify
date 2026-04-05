@@ -30,7 +30,7 @@ public interface DocumentAnalyzer {
             - Lower confidence if text is ambiguous or partial
             
             CITATIONS:
-            - Every clause and risk MUST include citations
+            - Every clause and risk SHOULD include citations if possible
             - Citations must reference page numbers
             
             JSON SCHEMA:

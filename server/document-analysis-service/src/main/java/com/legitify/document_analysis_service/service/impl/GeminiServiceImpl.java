@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.legitify.document_analysis_service.utils.DocumentAnalyzer;
 import com.legitify.document_analysis_service.utils.ExtractionResult;
+import com.legitify.document_analysis_service.utils.Page;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.service.AiServices;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,16 +51,27 @@ public class GeminiServiceImpl implements GeminiService {
 
         List<JsonNode> results = new ArrayList<>();
 
-        String combinedText = extractionResult.fullText();
-
         try {
-            String response = analyzer.analyze(combinedText, -1);
-            String cleanJson = extractJson(response);
+            for (Page page : extractionResult.pages) {
 
-            JsonNode result = mapper.readTree(cleanJson);
+                if (page.text == null || page.text.isBlank()) {
+                    continue;
+                }
+
+                String response = analyzer.analyze(page.text, page.pageNumber);
+
+                System.out.println("RAW GEMINI RESPONSE (Page " + page.pageNumber + "):\n" + response);
+
+                String cleanJson = extractJson(response);
+
+                System.out.println("CLEAN JSON (Page " + page.pageNumber + "):\n" + cleanJson);
+
+                JsonNode result = mapper.readTree(cleanJson);
+                results.add(result);
+            }
 
             return DocumentAnalysisUtils.mergeResponses(
-                    List.of(result),
+                    results,
                     extractionResult.metadata,
                     extractionResult.warnings,
                     extractionResult.ocrSuggested

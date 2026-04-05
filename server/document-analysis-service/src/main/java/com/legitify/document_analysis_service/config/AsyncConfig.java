@@ -11,6 +11,6 @@ public class AsyncConfig {
 
     @Bean
     public ExecutorService analysisExecutor() {
-        return Executors.newSingleThreadExecutor();
+        return Executors.newFixedThreadPool(4);
     }
 }

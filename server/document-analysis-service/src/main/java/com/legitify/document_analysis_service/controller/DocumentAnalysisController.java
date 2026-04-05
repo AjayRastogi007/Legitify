@@ -54,6 +54,9 @@ public class DocumentAnalysisController {
                 jobRepository.save(job);
 
                 ExtractionResult extractionResult = documentService.getTextFromFile(file);
+
+                System.out.println("FULL EXTRACTED TEXT:\n" + extractionResult.fullText());
+
                 String jsonResponse = geminiService.analyzeDocument(extractionResult);
                 String pdfPath = documentService.generatePdfFromString(jsonResponse);
 
