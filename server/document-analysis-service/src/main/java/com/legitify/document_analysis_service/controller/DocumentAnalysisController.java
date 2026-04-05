@@ -41,6 +41,10 @@ public class DocumentAnalysisController {
 
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, String>> analyzeAsync(@RequestParam("file") MultipartFile file) {
+
+        System.out.println("FILE RECEIVED: " + (file != null ? file.getOriginalFilename() : "NULL"));
+        System.out.println("FILE SIZE: " + (file != null ? file.getSize() : "0"));
+
         String jobId = UUID.randomUUID().toString();
 
         AnalysisJob job = new AnalysisJob();
