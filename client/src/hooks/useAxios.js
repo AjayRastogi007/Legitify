@@ -90,7 +90,9 @@ const useAxios = () => {
 
                         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
 
-                        originalRequest.headers = originalRequest.headers;
+                        if (!originalRequest.headers) {
+                            originalRequest.headers = {};
+                        }
 
                         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 

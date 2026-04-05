@@ -57,6 +57,7 @@ const RegisterPage = () => {
     }
 
     try {
+      await register({ username, email, password });
 
       showAlert({
         title: "Account created.",
@@ -64,9 +65,9 @@ const RegisterPage = () => {
         type: "success",
       });
 
-      await register({ username, email, password });
       setTimeout(() => navigate("/sign-in"), 300);
     } catch (error) {
+      
       const newErrors = { ...initialErrorState };
       if (error.response?.data?.fieldErrors)
         Object.assign(newErrors, error.response.data.fieldErrors);

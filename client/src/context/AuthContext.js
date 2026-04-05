@@ -59,10 +59,12 @@ export const AuthProvider = ({ children }) => {
 
     const handleSignIn = (data) => {
         setAuth({
-            user: data,
+            user: data.user,
             accessToken: data.accessToken,
             isLoggingOut: false
         });
+
+        api.defaults.headers.common.Authorization = `Bearer ${data.accessToken}`;
 
         showAlert({
             title: "Welcome back!",
