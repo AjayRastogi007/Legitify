@@ -7,8 +7,8 @@ public class CookieUtil {
     public static ResponseCookie refreshToken(String token) {
         return ResponseCookie.from("refreshToken", token)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
                 .build();
@@ -17,7 +17,7 @@ public class CookieUtil {
     public static ResponseCookie deleteRefreshToken() {
         return ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(0)
                 .build();
