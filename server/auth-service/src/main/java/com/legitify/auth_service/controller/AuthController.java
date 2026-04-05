@@ -24,11 +24,14 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> registration(@RequestBody RegisterRequestDto requestDto, HttpServletResponse response) {
+
         AuthResult result = authService.registration(requestDto);
 
         response.addHeader("Set-Cookie",
                 CookieUtil.refreshToken(result.tokens().refreshToken()).toString()
         );
+
+        System.out.println("Registration Successful");
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 UserMapper.MAPPER.toAuthResponseDto(
@@ -41,12 +44,18 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponseDto> signIn(@RequestBody LoginRequestDto requestDto,
             HttpServletResponse response) {
-        System.out.println("SIGN-IN HIT");
+
+        System.out.println("STEP 1: Controller hit");
+
         AuthResult result = authService.signIn(requestDto);
+
+        System.out.println("STEP 2: Service returned");
 
         response.addHeader("Set-Cookie",
                 CookieUtil.refreshToken(result.tokens().refreshToken()).toString()
         );
+
+        System.out.println("STEP 3: Cookie set");
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 UserMapper.MAPPER.toAuthResponseDto(
