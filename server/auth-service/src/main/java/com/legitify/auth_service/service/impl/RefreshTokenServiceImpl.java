@@ -21,6 +21,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         String rawToken = UUID.randomUUID().toString();
         String hash = TokenHashUtil.sha256(rawToken);
 
+        refreshTokenRepository.deleteByUserId(user.getUserId());
         refreshTokenRepository.save(new RefreshToken(
                 hash,
                 user.getUserId(),
