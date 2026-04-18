@@ -2,10 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { signOut, getCurrentUser, refreshAccessToken } from "../service/authService";
 import { useAlert } from "./AlertContext";
 import api from "../api/axios";
-import LoadingPage from "../pages/LoadingPage";
 
 const AuthContext = createContext(null);
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const AuthProvider = ({ children }) => {
     const { showAlert } = useAlert();
@@ -21,34 +19,52 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let active = true;
 
+        const isFirstLoad = !sessionStorage.getItem("app_loaded");
+        const MIN_LOADING_TIME = isFirstLoad ? 5000 : 0;
+
+        if (isFirstLoad) {
+            sessionStorage.setItem("app_loaded", "true");
+        }
+
         (async () => {
-            const MIN_LOADING_TIME = 1200;
+            const start = Date.now();
 
             try {
-                await Promise.all([
-                    (async () => {
-                        const { accessToken } = await refreshAccessToken();
-                        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-                        const user = await getCurrentUser();
-                        if (!active) return;
-                        setAuth({
-                            user,
-                            accessToken,
-                            isLoggingOut: false
-                        });
-                    })(),
-                    delay(MIN_LOADING_TIME),
-                ]);
+                const { accessToken } = await refreshAccessToken();
+
+                api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+
+                const user = await getCurrentUser();
+
+                if (!active) return;
+
+                setAuth({
+                    user,
+                    accessToken,
+                    isLoggingOut: false
+                });
+
             } catch (e) {
                 if (!active) return;
+
                 setAuth({
                     user: null,
                     accessToken: null,
                     isLoggingOut: false
                 });
+
                 delete api.defaults.headers.common.Authorization;
             } finally {
-                if (active) setLoading(false);
+                const elapsed = Date.now() - start;
+                const remaining = MIN_LOADING_TIME - elapsed;
+
+                if (remaining > 0) {
+                    setTimeout(() => {
+                        if (active) setLoading(false);
+                    }, remaining);
+                } else {
+                    if (active) setLoading(false);
+                }
             }
         })();
 
@@ -101,15 +117,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ auth, setAuth, handleSignIn, handleSignOut }}>
-            {loading ? (
-                <div className={`transition-opacity duration-300 ${!loading ? "opacity-0" : "opacity-100"}`}>
-                    <LoadingPage />
-                </div>
-            ) : children}
+        <AuthContext.Provider value={{ auth, loading, setAuth, handleSignIn, handleSignOut }}>
+            {loading ? children /* you will wrap this outside */ : children}
         </AuthContext.Provider>
     );
-}
+};
 
 export const useAuth = () => {
     const authContext = useContext(AuthContext);
