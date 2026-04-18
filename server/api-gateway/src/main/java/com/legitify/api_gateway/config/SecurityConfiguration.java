@@ -41,7 +41,7 @@ public class SecurityConfiguration {
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
                 .authorizeExchange(auth -> auth
-                        .pathMatchers("/legitify/auth/**", "/auth/**").permitAll()
+                        .pathMatchers("/legitify/auth/**", "/auth/**", "/actuator/health").permitAll()
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyExchange().authenticated()
                 )
