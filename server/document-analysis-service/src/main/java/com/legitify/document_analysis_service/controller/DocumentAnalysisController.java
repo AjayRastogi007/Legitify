@@ -54,7 +54,12 @@ public class DocumentAnalysisController {
         Path tempFile;
 
         try {
-            String ext = Objects.requireNonNull(file.getOriginalFilename()).endsWith(".pdf") ? ".pdf" : ".tmp";
+            String original = Objects.requireNonNull(file.getOriginalFilename()).toLowerCase(java.util.Locale.ROOT);
+            String ext;
+            if (original.endsWith(".pdf")) ext = ".pdf";
+            else if (original.endsWith(".docx")) ext = ".docx";
+            else if (original.endsWith(".txt")) ext = ".txt";
+            else ext = ".tmp";
             tempFile = Files.createTempFile("upload-", ext);
             file.transferTo(tempFile.toFile());
         } catch (Exception e) {

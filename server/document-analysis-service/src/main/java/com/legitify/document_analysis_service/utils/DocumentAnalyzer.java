@@ -86,6 +86,7 @@ public interface DocumentAnalyzer {
             
             Only return empty arrays if the text is clearly non-legal (cover page, table of contents, headers).
             """)
+    String analyzeBatch(@V("text") String text);
     String analyze(
             @V("text") String text,
             @V("pageNumber") int pageNumber
