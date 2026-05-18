@@ -4,6 +4,10 @@ import com.legitify.document_analysis_service.dto.AnalysisJobDto;
 import com.legitify.document_analysis_service.entity.AnalysisJob;
 import com.legitify.document_analysis_service.repository.AnalysisJobRepository;
 import com.legitify.document_analysis_service.utils.ExtractionResult;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +37,8 @@ public class DocumentAnalysisController {
     private final GeminiService geminiService;
     private final AnalysisJobRepository jobRepository;
     private final ExecutorService executor;
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentAnalysisController.class);
 
     public DocumentAnalysisController(DocumentAnalysisService documentService, GeminiService geminiService, AnalysisJobRepository jobRepository, ExecutorService executor) {
         this.documentService = documentService;
@@ -67,29 +73,54 @@ public class DocumentAnalysisController {
                     .body(Map.of("error", e.getMessage()));
         }
 
+        final Path tempFileFinal = tempFile;
         executor.submit(() -> {
+            log.info("[{}] Async task started, tempFile={}", jobId, tempFileFinal);
             try {
-                job.setStatus(AnalysisJob.Status.PROCESSING);
-                jobRepository.save(job);
+                try {
+                    job.setStatus(AnalysisJob.Status.PROCESSING);
+                    jobRepository.save(job);
+                    log.info("[{}] Status -> PROCESSING", jobId);
+                } catch (Throwable t) {
+                    log.error("[{}] Failed to persist PROCESSING status", jobId, t);
+                }
 
-                ExtractionResult extractionResult = documentService.getTextFromPath(tempFile);
+                log.info("[{}] Extracting text", jobId);
+                ExtractionResult extractionResult = documentService.getTextFromPath(tempFileFinal);
+                log.info("[{}] Extracted: pages={}, fullText length={}, errors={}, warnings={}",
+                        jobId,
+                        extractionResult.pages.size(),
+                        extractionResult.fullText() == null ? 0 : extractionResult.fullText().length(),
+                        extractionResult.errors,
+                        extractionResult.warnings);
 
-                System.out.println("FULL EXTRACTED TEXT:\n" + extractionResult.fullText());
-
+                log.info("[{}] Calling Gemini", jobId);
                 String jsonResponse = geminiService.analyzeDocument(extractionResult);
+                log.info("[{}] Gemini returned. JSON length={}",
+                        jobId, jsonResponse == null ? -1 : jsonResponse.length());
+
+                log.info("[{}] Generating PDF", jobId);
                 String pdfPath = documentService.generatePdfFromString(jsonResponse);
+                log.info("[{}] PDF generated at {}", jobId, pdfPath);
 
                 String fileName = new File(pdfPath).getName();
                 job.setPdfUrl("/legitify/service/pdf/" + fileName);
                 job.setStatus(AnalysisJob.Status.DONE);
                 jobRepository.save(job);
+                log.info("[{}] Status -> DONE, pdfUrl={}", jobId, job.getPdfUrl());
 
-                Files.deleteIfExists(tempFile);
+                try { Files.deleteIfExists(tempFileFinal); } catch (Throwable ignored) {}
 
-            } catch (Exception e) {
-                job.setStatus(AnalysisJob.Status.FAILED);
-                job.setError(e.getMessage());
-                jobRepository.save(job);
+            } catch (Throwable t) {
+                log.error("[{}] Async task FAILED", jobId, t);
+                try {
+                    job.setStatus(AnalysisJob.Status.FAILED);
+                    job.setError(t.getClass().getSimpleName() + ": " + t.getMessage());
+                    jobRepository.save(job);
+                    log.info("[{}] Status -> FAILED", jobId);
+                } catch (Throwable inner) {
+                    log.error("[{}] CRITICAL: Could not even mark job FAILED", jobId, inner);
+                }
             }
         });
 

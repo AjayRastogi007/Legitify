@@ -115,140 +115,132 @@ public class DocumentAnalysisServiceImpl implements DocumentAnalysisService {
 
     @Override
     public String generatePdfFromString(String jsonResponse) {
+        logger.info(() -> "generatePdfFromString called, length=" + (jsonResponse == null ? -1 : jsonResponse.length()));
+
+        if (jsonResponse == null || jsonResponse.isBlank()) {
+            throw new IllegalArgumentException("jsonResponse is null or blank");
+        }
+
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root;
-
         try {
             root = mapper.readTree(jsonResponse);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Invalid JSON received from analysis service", e);
+            throw new RuntimeException("Invalid JSON received from analysis service: " + e.getMessage(), e);
         }
 
         Path pdfPath;
-
         try {
             pdfPath = Files.createTempFile("policy-analysis-", ".pdf");
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Failed to create temporary PDF file", e
-            );
+            throw new IllegalStateException("Failed to create temporary PDF file", e);
         }
 
         Document document = new Document(PageSize.A4);
+        FileOutputStream fos;
+        try {
+            fos = new FileOutputStream(pdfPath.toFile());
+            PdfWriter.getInstance(document, fos);
+        } catch (FileNotFoundException e) {
+            throw new IllegalStateException("Unable to write PDF to temporary file", e);
+        }
 
         try {
-            PdfWriter.getInstance(
-                    document,
-                    new FileOutputStream(pdfPath.toFile())
-            );
-        } catch (FileNotFoundException e) {
-            throw new IllegalStateException(
-                    "Unable to write PDF to temporary file", e
-            );
-        }
-        document.open();
+            document.open();
 
-        Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
-        Font headingFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-        Font normalFont = new Font(Font.HELVETICA, 10);
+            Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+            Font headingFont = new Font(Font.HELVETICA, 12, Font.BOLD);
+            Font normalFont = new Font(Font.HELVETICA, 10);
 
-        if (root.has("error")) {
-            document.add(new Paragraph("Policy Analysis Report - Failed", titleFont));
-            document.add(Chunk.NEWLINE);
-            document.add(new Paragraph("Error: " + root.path("error").asText(), normalFont));
-            if (root.has("details")) {
+            if (root.has("error")) {
+                document.add(new Paragraph("Policy Analysis Report - Failed", titleFont));
                 document.add(Chunk.NEWLINE);
-                document.add(new Paragraph("Details:", headingFont));
-                for (JsonNode d : root.path("details")) {
-                    document.add(new Paragraph("- " + d.asText(), normalFont));
+                document.add(new Paragraph("Error: " + root.path("error").asText(), normalFont));
+                if (root.has("details")) {
+                    document.add(Chunk.NEWLINE);
+                    document.add(new Paragraph("Details:", headingFont));
+                    for (JsonNode d : root.path("details")) {
+                        document.add(new Paragraph("- " + safeText(d.asText()), normalFont));
+                    }
                 }
+                return pdfPath.toAbsolutePath().toString();
             }
-            document.close();
-            return pdfPath.toAbsolutePath().toString();
-        }
 
-        document.add(new Paragraph("Policy Analysis Report", titleFont));
-        document.add(Chunk.NEWLINE);
-
-        if (root.path("incomplete").asBoolean(false)) {
-            document.add(new Paragraph("NOTE: Analysis marked as incomplete.", headingFont));
-        }
-        if (root.path("ocrSuggested").asBoolean(false)) {
-            document.add(new Paragraph("NOTE: OCR was suggested for this document.", normalFont));
-        }
-        JsonNode warnings = root.path("warnings");
-        if (warnings.isArray() && !warnings.isEmpty()) {
-            document.add(new Paragraph("Warnings:", headingFont));
-            for (JsonNode w : warnings) {
-                document.add(new Paragraph("- " + w.asText(), normalFont));
-            }
+            document.add(new Paragraph("Policy Analysis Report", titleFont));
             document.add(Chunk.NEWLINE);
+
+            if (root.path("incomplete").asBoolean(false)) {
+                document.add(new Paragraph("NOTE: Analysis marked as incomplete.", headingFont));
+            }
+            if (root.path("ocrSuggested").asBoolean(false)) {
+                document.add(new Paragraph("NOTE: OCR was suggested for this document.", normalFont));
+            }
+            JsonNode warnings = root.path("warnings");
+            if (warnings.isArray() && !warnings.isEmpty()) {
+                document.add(new Paragraph("Warnings:", headingFont));
+                for (JsonNode w : warnings) {
+                    document.add(new Paragraph("- " + safeText(w.asText()), normalFont));
+                }
+                document.add(Chunk.NEWLINE);
+            }
+
+            JsonNode metadata = root.path("metadata");
+            document.add(new Paragraph("Pages Extracted: " + metadata.path("pages_extracted").asText("N/A"), normalFont));
+            document.add(new Paragraph("Confidence Score: " + root.path("confidence").asText("N/A"), normalFont));
+            document.add(Chunk.NEWLINE);
+
+            List<JsonNode> clauses = new ArrayList<>();
+            root.path("clauses").forEach(clauses::add);
+
+            Map<String, Integer> severityOrder = Map.of("critical", 1, "high", 2, "medium", 3, "low", 4);
+
+            clauses.sort(Comparator.comparingInt(c -> severityOrder.getOrDefault(c.path("severity").asText().toLowerCase(), 99)));
+
+            long criticalCount = clauses.stream().filter(c -> "critical".equalsIgnoreCase(c.path("severity").asText())).count();
+            long highCount = clauses.stream().filter(c -> "high".equalsIgnoreCase(c.path("severity").asText())).count();
+            long mediumCount = clauses.stream().filter(c -> "medium".equalsIgnoreCase(c.path("severity").asText())).count();
+            long lowCount = clauses.stream().filter(c -> "low".equalsIgnoreCase(c.path("severity").asText())).count();
+
+            document.add(new Paragraph("Severity Summary", headingFont));
+            document.add(new Paragraph("Critical Risk Clauses : " + criticalCount, normalFont));
+            document.add(new Paragraph("High Risk Clauses     : " + highCount, normalFont));
+            document.add(new Paragraph("Medium Risk Clauses   : " + mediumCount, normalFont));
+            document.add(new Paragraph("Low Risk Clauses      : " + lowCount, normalFont));
+            document.add(Chunk.NEWLINE);
+
+            addSeveritySection(document, "CRITICAL SEVERITY CLAUSES", clauses, "critical", headingFont);
+            addSeveritySection(document, "HIGH SEVERITY CLAUSES", clauses, "high", headingFont);
+            addSeveritySection(document, "MEDIUM SEVERITY CLAUSES", clauses, "medium", headingFont);
+            addSeveritySection(document, "LOW SEVERITY CLAUSES", clauses, "low", headingFont);
+            document.add(Chunk.NEWLINE);
+
+            document.add(new Paragraph("Risk Summary", headingFont));
+            document.add(Chunk.NEWLINE);
+
+            for (JsonNode risk : root.path("risksSummary")) {
+                document.add(new Paragraph("- " + safeText(risk.path("risk").asText()) + " (Confidence: " + risk.path("confidence").asText("N/A") + ")", normalFont));
+            }
+
+            return pdfPath.toAbsolutePath().toString();
+
+        } catch (Throwable t) {
+            logger.severe("PDF generation failed: " + t);
+            throw new RuntimeException("PDF generation failed: " + t.getMessage(), t);
+        } finally {
+            try {
+                document.close();
+            } catch (Throwable ignored) {
+            }
+            try {
+                fos.close();
+            } catch (Throwable ignored) {
+            }
         }
+    }
 
-        JsonNode metadata = root.path("metadata");
-        document.add(new Paragraph(
-                "Pages Extracted: " + metadata.path("pages_extracted").asText(), normalFont));
-        document.add(new Paragraph(
-                "Confidence Score: " + root.path("confidence").asText(), normalFont));
-        document.add(Chunk.NEWLINE);
-
-        List<JsonNode> clauses = new ArrayList<>();
-        root.path("clauses").forEach(clauses::add);
-
-        Map<String, Integer> severityOrder = Map.of(
-                "critical", 1,
-                "high", 2,
-                "medium", 3,
-                "low", 4
-        );
-
-        clauses.sort(Comparator.comparingInt(
-                c -> severityOrder.getOrDefault(
-                        c.path("severity").asText().toLowerCase(), 99
-                )
-        ));
-
-        long criticalCount = clauses.stream()
-                .filter(c -> "critical".equalsIgnoreCase(c.path("severity").asText()))
-                .count();
-
-        long highCount = clauses.stream()
-                .filter(c -> "high".equalsIgnoreCase(c.path("severity").asText()))
-                .count();
-
-        long mediumCount = clauses.stream()
-                .filter(c -> "medium".equalsIgnoreCase(c.path("severity").asText()))
-                .count();
-
-        long lowCount = clauses.stream()
-                .filter(c -> "low".equalsIgnoreCase(c.path("severity").asText()))
-                .count();
-
-        document.add(new Paragraph("Severity Summary", headingFont));
-        document.add(new Paragraph("Critical Risk Clauses : " + criticalCount, normalFont));
-        document.add(new Paragraph("High Risk Clauses     : " + highCount, normalFont));
-        document.add(new Paragraph("Medium Risk Clauses   : " + mediumCount, normalFont));
-        document.add(new Paragraph("Low Risk Clauses      : " + lowCount, normalFont));
-        document.add(Chunk.NEWLINE);
-
-        addSeveritySection(document, "CRITICAL SEVERITY CLAUSES", clauses, "critical", headingFont);
-        addSeveritySection(document, "HIGH SEVERITY CLAUSES", clauses, "high", headingFont);
-        addSeveritySection(document, "MEDIUM SEVERITY CLAUSES", clauses, "medium", headingFont);
-        addSeveritySection(document, "LOW SEVERITY CLAUSES", clauses, "low", headingFont);
-        document.add(Chunk.NEWLINE);
-
-        document.add(new Paragraph("Risk Summary", headingFont));
-        document.add(Chunk.NEWLINE);
-
-        for (JsonNode risk : root.path("risksSummary")) {
-            document.add(new Paragraph(
-                    "• " + risk.path("risk").asText()
-                            + " (Confidence: " + risk.path("confidence").asText() + ")",
-                    normalFont));
-        }
-
-        document.close();
-        return pdfPath.toAbsolutePath().toString();
+    private static String safeText(String s) {
+        if (s == null) return "";
+        return s.length() > 2000 ? s.substring(0, 2000) + "..." : s;
     }
 
     private Font getSeverityFont(String severity) {
@@ -264,13 +256,7 @@ public class DocumentAnalysisServiceImpl implements DocumentAnalysisService {
         return new Font(Font.HELVETICA, 10, Font.NORMAL, Color.GREEN);
     }
 
-    private void addSeveritySection(
-            Document document,
-            String title,
-            List<JsonNode> clauses,
-            String severity,
-            Font headingFont
-    ) throws DocumentException {
+    private void addSeveritySection(Document document, String title, List<JsonNode> clauses, String severity, Font headingFont) throws DocumentException {
 
         document.add(new Paragraph(title, headingFont));
         document.add(Chunk.NEWLINE);
@@ -289,16 +275,13 @@ public class DocumentAnalysisServiceImpl implements DocumentAnalysisService {
                 continue;
             }
 
-            table.addCell(clause.path("type").asText());
-            table.addCell(clause.path("textSnippet").asText());
+            table.addCell(safeText(clause.path("type").asText()));
+            table.addCell(safeText(clause.path("textSnippet").asText()));
 
             Font severityFont = getSeverityFont(clause.path("severity").asText());
-            table.addCell(new Paragraph(
-                    clause.path("severity").asText().toUpperCase(),
-                    severityFont
-            ));
+            table.addCell(new Paragraph(clause.path("severity").asText().toUpperCase(), severityFont));
 
-            table.addCell(clause.path("recommendedAction").asText());
+            table.addCell(safeText(clause.path("recommendedAction").asText()));
         }
 
         document.add(table);
