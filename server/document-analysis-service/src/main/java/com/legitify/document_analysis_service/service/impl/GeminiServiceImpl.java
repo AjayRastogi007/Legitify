@@ -28,7 +28,14 @@ public class GeminiServiceImpl implements GeminiService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     public GeminiServiceImpl(@Value("${GEMINI_API_KEY}") String geminiApiKey) {
-        GoogleAiGeminiChatModel model = GoogleAiGeminiChatModel.builder().apiKey(geminiApiKey).modelName("gemini-2.5-flash").temperature(0.2).build();
+        GoogleAiGeminiChatModel model =
+                GoogleAiGeminiChatModel.builder()
+                        .apiKey(geminiApiKey)
+                        .modelName("gemini-2.5-flash")
+                        .temperature(0.2)
+                        .timeout(java.time.Duration.ofMinutes(5))
+                        .maxRetries(2)
+                        .build();
 
         this.analyzer = AiServices.create(DocumentAnalyzer.class, model);
     }
@@ -40,7 +47,9 @@ public class GeminiServiceImpl implements GeminiService {
             return errorJson("Extraction failed", extractionResult.errors);
         }
 
-        List<Page> pages = extractionResult.pages.stream().filter(p -> p.text != null && !p.text.isBlank()).toList();
+        List<Page> pages = extractionResult.pages.stream()
+                .filter(p -> p.text != null && !p.text.isBlank())
+                .toList();
 
         if (pages.isEmpty() && extractionResult.fullText().isBlank()) {
             log.warn("No text to analyze");
@@ -50,6 +59,9 @@ public class GeminiServiceImpl implements GeminiService {
         if (pages.isEmpty()) {
             pages = List.of(new Page(1, extractionResult.fullText()));
         }
+
+        // If only one big page (typical of DOCX), split into pseudo-pages
+        pages = splitLargePages(pages);
 
         log.info("Analyzing {} pages in batches of {}", pages.size(), PAGES_PER_BATCH);
 
@@ -63,26 +75,33 @@ public class GeminiServiceImpl implements GeminiService {
 
             StringBuilder buf = new StringBuilder();
             for (Page p : chunk) {
-                buf.append("<<PAGE_BREAK_").append(p.pageNumber).append(">>\n").append(p.text).append("\n");
+                buf.append("<<PAGE_BREAK_").append(p.pageNumber).append(">>\n")
+                        .append(p.text).append("\n");
             }
 
             try {
                 log.info("Calling Gemini for pages {}-{} (chars={})", firstPage, lastPage, buf.length());
                 String response = analyzer.analyzeBatch(buf.toString());
-                log.info("Gemini response received for pages {}-{}, length={}", firstPage, lastPage, response == null ? -1 : response.length());
+                log.info("Gemini response received for pages {}-{}, length={}",
+                        firstPage, lastPage, response == null ? -1 : response.length());
 
                 String cleanJson = extractJson(response);
                 JsonNode node = mapper.readTree(cleanJson);
                 results.add(node);
-                log.info("Parsed JSON for pages {}-{}: clauses={}, risks={}", firstPage, lastPage, node.path("clauses").size(), node.path("risksSummary").size());
+                log.info("Parsed JSON for pages {}-{}: clauses={}, risks={}",
+                        firstPage, lastPage,
+                        node.path("clauses").size(),
+                        node.path("risksSummary").size());
 
             } catch (dev.langchain4j.exception.RateLimitException rle) {
                 log.warn("Rate limit hit at pages {}-{}", firstPage, lastPage);
-                warnings.add("Rate limit hit at pages " + firstPage + "-" + lastPage + "; remaining pages skipped.");
+                warnings.add("Rate limit hit at pages " + firstPage + "-" + lastPage
+                        + "; remaining pages skipped.");
                 break;
             } catch (Throwable t) {
                 log.error("Batch pages {}-{} failed", firstPage, lastPage, t);
-                warnings.add("Batch pages " + firstPage + "-" + lastPage + " failed: " + t.getMessage());
+                warnings.add("Batch pages " + firstPage + "-" + lastPage
+                        + " failed: " + t.getMessage());
             }
         }
 
@@ -92,13 +111,42 @@ public class GeminiServiceImpl implements GeminiService {
         }
 
         try {
-            String merged = DocumentAnalysisUtils.mergeResponses(results, extractionResult.metadata, warnings, extractionResult.ocrSuggested);
+            String merged = DocumentAnalysisUtils.mergeResponses(
+                    results, extractionResult.metadata, warnings, extractionResult.ocrSuggested);
             log.info("Merged JSON length={}", merged == null ? -1 : merged.length());
             return merged;
         } catch (Throwable t) {
             log.error("mergeResponses failed", t);
             return errorJson("Merge failed", List.of(t.getMessage()));
         }
+    }
+
+    private List<Page> splitLargePages(List<Page> pages) {
+        List<Page> result = new ArrayList<>();
+        int nextNum = 1;
+        for (Page p : pages) {
+            if (p.text.length() <= 8000) {
+                result.add(new Page(nextNum++, p.text));
+                continue;
+            }
+
+            String text = p.text;
+            int start = 0;
+            while (start < text.length()) {
+                int end = Math.min(start + 8000, text.length());
+                if (end < text.length()) {
+                    int lastNewline = text.lastIndexOf('\n', end);
+                    int lastPeriod = text.lastIndexOf(". ", end);
+                    int breakPoint = Math.max(lastNewline, lastPeriod);
+                    if (breakPoint > start + 8000 / 2) {
+                        end = breakPoint + 1;
+                    }
+                }
+                result.add(new Page(nextNum++, text.substring(start, end).trim()));
+                start = end;
+            }
+        }
+        return result;
     }
 
     private String errorJson(String message, List<String> details) {
