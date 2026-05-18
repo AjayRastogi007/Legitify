@@ -27,9 +27,41 @@ public class TextExtractor {
     public static String extractTextFromDocx(InputStream in) throws IOException {
         try (XWPFDocument docx = new XWPFDocument(in)) {
             StringBuilder sb = new StringBuilder();
-            for (XWPFParagraph para : docx.getParagraphs()) {
-                sb.append(para.getText()).append("\n");
+
+            for (org.apache.poi.xwpf.usermodel.IBodyElement element : docx.getBodyElements()) {
+                if (element instanceof XWPFParagraph para) {
+                    String text = para.getText();
+                    if (text != null && !text.isBlank()) {
+                        sb.append(text).append("\n");
+                    }
+                } else if (element instanceof org.apache.poi.xwpf.usermodel.XWPFTable table) {
+                    for (org.apache.poi.xwpf.usermodel.XWPFTableRow row : table.getRows()) {
+                        for (org.apache.poi.xwpf.usermodel.XWPFTableCell cell : row.getTableCells()) {
+                            for (XWPFParagraph cellPara : cell.getParagraphs()) {
+                                String text = cellPara.getText();
+                                if (text != null && !text.isBlank()) {
+                                    sb.append(text).append("\n");
+                                }
+                            }
+                        }
+                    }
+                    sb.append("\n");
+                }
             }
+
+            for (org.apache.poi.xwpf.usermodel.XWPFHeader header : docx.getHeaderList()) {
+                String text = header.getText();
+                if (text != null && !text.isBlank()) {
+                    sb.append(text).append("\n");
+                }
+            }
+            for (org.apache.poi.xwpf.usermodel.XWPFFooter footer : docx.getFooterList()) {
+                String text = footer.getText();
+                if (text != null && !text.isBlank()) {
+                    sb.append(text).append("\n");
+                }
+            }
+
             return sb.toString().trim();
         }
     }

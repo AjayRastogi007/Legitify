@@ -31,7 +31,7 @@ public interface DocumentAnalyzer {
             
             CITATIONS:
             - Every clause and risk SHOULD include citations if possible
-            - Citations must reference page numbers
+            - Citations must reference page numbers from the <<PAGE_BREAK_N>> markers
             
             JSON SCHEMA:
             {
@@ -63,16 +63,16 @@ public interface DocumentAnalyzer {
             - The first character of your response MUST be '{'.
             - The last character of your response MUST be '}'.
             - If you violate this, the response will be rejected.
-            
             """)
-
     @UserMessage("""
-            PAGE NUMBER: {{pageNumber}}
-            
-            DOCUMENT TEXT:
+            DOCUMENT TEXT (may contain multiple pages, separated by <<PAGE_BREAK_N>> markers where N is the page number):
             {{text}}
             
-            Analyze the provided text as part of a legal or business document.
+            Analyze ALL the provided text as one continuous legal or business document.
+            
+            For every clause and risk you extract, set the "page" field in citations
+            to the page number from the nearest preceding <<PAGE_BREAK_N>> marker.
+            If no <<PAGE_BREAK_N>> marker is present, use page 1.
             
             If the text contains ANY of the following, you MUST extract clauses:
             - obligations or duties ("shall", "must", "will")
@@ -81,14 +81,10 @@ public interface DocumentAnalyzer {
             - penalties, liabilities, or termination rules
             - risk-bearing language
             
-            If the page appears to be incomplete context (references other sections, definitions, or continuations),
+            If the text appears to be incomplete context (references other sections, definitions, or continuations),
             set "incomplete": true.
             
             Only return empty arrays if the text is clearly non-legal (cover page, table of contents, headers).
             """)
     String analyzeBatch(@V("text") String text);
-    String analyze(
-            @V("text") String text,
-            @V("pageNumber") int pageNumber
-    );
 }
