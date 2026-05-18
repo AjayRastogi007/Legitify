@@ -14,7 +14,7 @@ public class CorsConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
 
-        config.setAllowedOrigins(List.of("https://legitify-web.vercel.app"));
+        config.setAllowedOrigins(List.of("https://legitify-pearl.vercel.app/"));
         config.setAllowCredentials(true);
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "OPTIONS"
