@@ -16,6 +16,7 @@ const PdfUploader = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [resultPdfUrl, setResultPdfUrl] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
 
   const inputRef = useRef(null);
 
@@ -106,6 +107,7 @@ const PdfUploader = () => {
       });
     } finally {
       setIsAnalyzing(false);
+      setElapsed(0);
     }
   };
 
@@ -164,10 +166,12 @@ const PdfUploader = () => {
 
   const pollJobStatus = async (jobId) => {
     let interval = 3000;
-    const timeout = 90000;
+    const timeout = 360000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
+      setElapsed(Math.floor((Date.now() - start) / 1000));
+
       const res = await api.get(`/service/jobs/${jobId}`);
 
       if (res.data.status === "DONE") {
@@ -184,8 +188,6 @@ const PdfUploader = () => {
 
     throw new Error("Analysis timed out");
   };
-
-
 
   return (
     <div className="pdf-uploader-wrapper w-full max-w-2xl mx-auto px-6 pb-6">
@@ -273,7 +275,7 @@ const PdfUploader = () => {
                   {isAnalyzing && (
                     <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   )}
-                  {isAnalyzing ? "Analyzing" : "Analyze Document"}
+                  {isAnalyzing ? `Analyzing... ${elapsed}s` : "Analyze Document"}
                 </Button>
               ) : (
                 <Button
